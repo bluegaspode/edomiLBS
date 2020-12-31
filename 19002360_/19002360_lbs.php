@@ -179,18 +179,46 @@ function readLogAndSaveFloat($id, $sourceRegister, $sourceRegisterName, $targetO
 	$value = round($value, 2);
 	setLogicLinkAusgang($id,$targetOutput, $value);
 	logging($id, $sourceRegisterName . ":" . strval($value));
+	return $value;
 }
 
 function readLogAndSaveS16($id, $sourceRegister, $sourceRegisterName, $targetOutput, $valuesByteArray, $valuesOffset) {
 	$value = PhpType::bytes2signedInt(array_slice($valuesByteArray , ($sourceRegister-$valuesOffset)*2, 2));
 	setLogicLinkAusgang($id,$targetOutput, $value);
 	logging($id, $sourceRegisterName . ":" . strval($value));
+	return $value;
 }
 
 function readLogAndSaveU32($id, $sourceRegister, $sourceRegisterName, $targetOutput, $valuesByteArray, $valuesOffset) {
 	$value = PhpType::bytes2unsignedInt(array_slice($valuesByteArray , ($sourceRegister-$valuesOffset)*2, 4));
 	setLogicLinkAusgang($id,$targetOutput, $value);
 	logging($id, $sourceRegisterName . ":" . strval($value));
+	return $value;
+}
+
+function inverterStatusToStatusString($status) {
+	$mapping = [
+		"0" => "Off",
+		"1" => "Init",
+		"2" => "IsoMeas",
+		"3" => "GridCheck",
+		"4" => "StartUp",
+		"5" => "-",
+		"6" => "FeedIn",
+		"7" => "Throttled",
+		"8" => "ExtSwitchOff",
+		"9" => "Update",
+		"10" => "Standby",
+		"11" => "GridSync",
+		"12" => "GridPreCheck",
+		"13" => "GridSwitchOff",
+		"14" => "Overheating",
+		"15" => "Shutdown",
+		"16" => "ImproperDcVoltage",
+		"17" => "ESB",
+		"18" => "Unknown"];
+
+		return $mapping[$status];
 }
 
 
@@ -205,6 +233,8 @@ $modbus->port = 1502;
 try {
 	logging($id, "--- starting Modbus Read ---");
 
+
+	// modbus doc https://www.photovoltaikforum.com/core/attachment/81082-ba-kostal-interface-modbus-tcp-sunspec-pdf/
 	$recData56 = $modbus->readMultipleRegisters(71, 56, 1);
 	$recData100 = $modbus->readMultipleRegisters(71, 100, 100);
 	$recData200 = $modbus->readMultipleRegisters(71, 200, 100);
@@ -223,8 +253,8 @@ try {
 	[a#12 = Home own consumption from PV (W)]
 	*/
 
-	readLogAndSaveU32($id, 56, "Inverter Status", 1, $recData56, 100);
-	//readLogAndSaveFloat($id, 158, "Inverter Status Text", 2, $recData100, 100);
+	$invStatus = readLogAndSaveU32($id, 56, "Inverter Status", 1, $recData56, 100);
+	setLogicLinkAusgang($id,2, inverterStatusToStatusString($invStatus));
 	readLogAndSaveFloat($id, 100, "Total DC power (W)", 3, $recData100, 100);
 	readLogAndSaveS16($id, 575, "Inverter Generation Power (W)", 4, $recData575, 575);
 	readLogAndSaveS16($id, 582, "Battery charge/discharge power (W)", 5, $recData575, 575);
