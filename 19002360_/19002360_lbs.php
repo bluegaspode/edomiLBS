@@ -52,7 +52,7 @@
 
 [v#1		=	]
 
-[v#100 = 0.3]  								//Version
+[v#100 = 0.4]  								//Version
 [v#101 = 19002360]  						//LBS ID
 [v#102 = Kostal Plenticore ModbusTCP]      //LBS Name
 ###[/DEF]###
@@ -64,8 +64,8 @@ Die Datei ModbusMaster.php muss in das Verzeichnis: /usr/local/edomi/main/includ
 
 E1: Trigger, über diesen Eingang kann der Baustein getriggert werden.
 E2: IP Wechselrichter
-E3: Log-Level (0=none, 1=emergency, 2=alert, 3=critical, 4=error, 5=warning, 6=notice, 7=info, 8=debug)
-
+E3: Log-Level (0=none, 1=emergency, 2=alert, 3=critical, 4=error, 5=warning, 6=notice, 7=info, 8=debug). Auf LogLevel 8 werden die Daten sehr intensiv geloggt, dies aber nur, wenn der Baustein individuell getriggert wird (siehe E4)
+E4: Loop-Deley der Baustein kann durch individuelles Triggern auf E1 (E1=Trigger, E4=0) oder selbstständig laufen (E1=1, E4=gewünschtes Delay in ms). Für das selbstständige Laufen ist E1 auf 1 zu setzen und E4 auf den gewünschten Rhythmus, z.B. 1000 um jede Sekunde die Werte auszulesen.
 
 ###[/HELP]###
 
@@ -178,12 +178,19 @@ $ip = $E[2]['value'];
 $delay 	= $E[4]['value'];
 if ($delay>0) { logging($id, "--- EXEC daemon START ---",6); }
 
-
-$modbus = new ModbusMaster($ip, "TCP");
-
-$modbus->port = 1502;
+$cnt=0;
 
 while(logic_getEdomiState()==1) {
+	$modbus = new ModbusMaster($ip, "TCP");
+	$modbus->port = 1502;
+
+	if ($delay>0) { 
+		$cyclesPerDay=24*60*60*1000 / $delay;
+		if ($cnt%($cyclesPerDay/2)==0) {
+			logging($id, "--- EXEC daemon $cnt cycles run ---",6); 
+		}
+	}
+
 	try {
 		logging($id, "--- starting Modbus Read ---");
 
@@ -302,10 +309,10 @@ while(logic_getEdomiState()==1) {
 
 	if($delay!=0 && $delay<500) { $delay = 500; }		// keine zu hohe Frequenz erlauben
 	usleep(1000*$delay);		//CPU-Last verteilen (die Länge der Pause sollte je nach Bedarf angepasst werden - je länger, desto ressourcenschonender)
-	
+	unset($modbus);
+	$cnt++;
 }
 
-unset($modbus);
 
 //logic_setVar($id,1,0);											//setzt V1=0, um einen erneuten Start des EXEC-Scripts zu erm?glichen
 logging($id, "EXEC End");
