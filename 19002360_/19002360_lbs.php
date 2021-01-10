@@ -291,7 +291,7 @@ while(logic_getEdomiState()==1) {
 		[a#60 = --- Battery --- ]
 		[a#61 = Act. state of charge (%) ]*/
 
-		readLogAndSaveFloat($id, 210, "Act. state of charge (%)", 61, $recData200, 320);
+		readLogAndSaveFloat($id, 210, "Act. state of charge (%)", 61, $recData200, 200);
 
 	} catch (Exception $e) {
 		logging($id, "Fehler:" , 4);
