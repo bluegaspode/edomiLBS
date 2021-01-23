@@ -52,7 +52,7 @@
 
 [v#1		=	]
 
-[v#100 = 0.5]  								//Version
+[v#100 = 0.6]  								//Version
 [v#101 = 19002360]  						//LBS ID
 [v#102 = Kostal Plenticore ModbusTCP]      //LBS Name
 ###[/DEF]###
