@@ -52,7 +52,7 @@
 
 [v#1		=	]
 
-[v#100 = 0.4]  								//Version
+[v#100 = 0.5]  								//Version
 [v#101 = 19002360]  						//LBS ID
 [v#102 = Kostal Plenticore ModbusTCP]      //LBS Name
 ###[/DEF]###
@@ -191,6 +191,8 @@ while(logic_getEdomiState()==1) {
 		}
 	}
 
+	$errorDelay=0;
+
 	try {
 		logging($id, "--- starting Modbus Read ---");
 
@@ -297,8 +299,11 @@ while(logic_getEdomiState()==1) {
 		logging($id, "Fehler:" , 4);
 		logging($id, $modbus,4);
 		logging($id, $e,4);
-		exit;
+		// on errors wait for 5min before we try again
+		$errorDelay=1000*60*5;
 	}
+
+	unset($modbus);
 
 	// allow some parameter changes during runtime
 	$E = logic_getInputs($id);
@@ -308,8 +313,9 @@ while(logic_getEdomiState()==1) {
 	if ($trigger==0)	{ break; }	// Ausführung soll unterbrochen werden
 
 	if($delay!=0 && $delay<500) { $delay = 500; }		// keine zu hohe Frequenz erlauben
+	if($delay!=0 && $errorDelay>0) { $delay = $errorDelay; }		// bei Fehlern länger warten
 	usleep(1000*$delay);		//CPU-Last verteilen (die Länge der Pause sollte je nach Bedarf angepasst werden - je länger, desto ressourcenschonender)
-	unset($modbus);
+
 	$cnt++;
 }
 
